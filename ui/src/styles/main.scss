@@ -1,0 +1,72 @@
+// src/styles/main.scss
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #ffffff; // White base
+  color: #333;
+  overflow-x: hidden;
+}
+
+.app {
+  min-height: 100vh;
+  position: relative;
+}
+
+// src/styles/main.scss (partial)
+.futuristic-bg {
+  background: linear-gradient(135deg, #1e1e2f, #ff00cc 50%, #00ffcc); // Original pink gradient
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(255, 0, 204, 0.3); // Pink shadow
+  transform: perspective(1000px);
+}
+
+button {
+  background: #FF69B4; // Hot pink
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+  &:hover {
+    transform: translateY(-3px) rotateX(10deg);
+    box-shadow: 0 10px 20px rgba(255, 105, 180, 0.6);
+    background: #D8BFD8; // Purple on hover
+  }
+}
+
+input, textarea {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #D8BFD8; // Purple border
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-family: 'Poppins', sans-serif;
+  transition: border-color 0.3s ease;
+  &:focus {
+    border-color: #FF69B4; // Pink on focus
+    outline: none;
+  }
+}
+
+.lazy-placeholder {
+  background: rgba(216, 191, 216, 0.2);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.lazy-placeholder {
+  background: linear-gradient(to right, rgba(216, 191, 216, 0.2), rgba(255, 105, 180, 0.4), rgba(216, 191, 216, 0.2));
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}

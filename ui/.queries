@@ -1,0 +1,64 @@
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sessions Table
+CREATE TABLE IF NOT EXISTS sessions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  session_id UUID UNIQUE DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + INTERVAL '1 day'
+);
+
+-- Content Table
+CREATE TABLE IF NOT EXISTS content (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL CHECK (type IN ('video', 'image', 'slideshow')),
+  status VARCHAR(50) NOT NULL CHECK (status IN ('draft', 'in_review', 'published')),
+  file_path JSONB NOT NULL,
+  caption TEXT,
+  brand_links JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Chat Messages Table
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id SERIAL PRIMARY KEY,
+  sender_name VARCHAR(255) NOT NULL,
+  sender_email VARCHAR(255) NOT NULL,
+  vision TEXT,
+  website_url VARCHAR(255),
+  image_path VARCHAR(255),
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  reply TEXT,
+  replied_at TIMESTAMP
+);
+
+-- Todos Table
+CREATE TABLE IF NOT EXISTS todos (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  priority VARCHAR(50) NOT NULL CHECK (priority IN ('high', 'medium', 'low')),
+  due_date TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Links Table
+CREATE TABLE IF NOT EXISTS links (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed Admin User (replace password with actual hashed value)
+INSERT INTO users (username, password) 
+VALUES ('admin', '$2b$10$examplehashedpassword123'); -- Use bcrypt in production

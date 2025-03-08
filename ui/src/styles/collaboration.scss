@@ -1,0 +1,85 @@
+// src/styles/collaboration.scss
+.collaboration {
+    display: grid;
+    grid-template-columns: 2fr 1fr; // Messaging takes more space
+    gap: 20px;
+    padding: 40px;
+  }
+  
+  .messaging, .file-sharing {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+  }
+  
+  .messaging {
+    display: flex;
+    flex-direction: column;
+  
+    .message-list {
+      flex-grow: 1;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+  
+      .message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+        width: 70%;
+      }
+  
+      .sent {
+        background: #00ffcc;
+        color: #1e1e2f;
+        margin-left: auto;
+        text-align: right;
+      }
+  
+      .received {
+        background: #ff00cc;
+        color: #fff;
+      }
+  
+      span {
+        font-size: 0.8em;
+        opacity: 0.7;
+      }
+    }
+  
+    .message-input {
+      display: flex;
+      gap: 10px;
+  
+      input {
+        flex-grow: 1;
+      }
+    }
+  }
+  
+  .file-sharing {
+    ul {
+      list-style: none;
+      padding: 0;
+      li {
+        margin: 10px 0;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        a {
+          color: #00ffcc;
+          text-decoration: none;
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      transform: none;
+    }
+  }

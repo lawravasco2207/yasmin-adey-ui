@@ -1,0 +1,84 @@
+// src/styles/contact.scss
+.chat-page {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  h1 {
+    color: #ffffff; // White text for contrast
+    font-weight: 600;
+    text-shadow: 0 5px 10px rgba(255, 0, 204, 0.5); // Pink glow
+    margin-bottom: 30px;
+  }
+
+  .chat-form {
+    background: rgba(255, 255, 255, 0.1); // Transparent white
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(255, 0, 204, 0.3); // Pink shadow
+    width: 100%;
+    max-width: 600px;
+
+    p {
+      color: #00ffcc; // Cyan success message
+      font-size: 1.2em;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 255, 204, 0.3);
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+
+      input,
+      textarea {
+        padding: 12px;
+        border-radius: 10px;
+        border: 2px solid #00ffcc; // Cyan border
+        background: rgba(255, 255, 255, 0.2); // Slightly opaque white
+        color: #ffffff;
+        font-family: 'Poppins', sans-serif;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        &:focus {
+          border-color: #ff00cc; // Hot pink on focus
+          box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
+          outline: none;
+        }
+      }
+
+      input[type="file"] {
+        padding: 8px; // Slightly less padding for file input
+        border: 2px dashed #00ffcc; // Dashed for visual distinction
+        cursor: pointer;
+        &:hover {
+          border-color: #ff00cc;
+        }
+      }
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      button {
+        background: #ff00cc; // Hot pink button
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        color: #ffffff;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(255, 0, 204, 0.4);
+        transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+        &:hover {
+          background: #00ffcc; // Cyan on hover
+          color: #1e1e2f;
+          transform: translateY(-3px) rotateX(10deg); // 3D lift effect
+          box-shadow: 0 10px 20px rgba(0, 255, 204, 0.6);
+        }
+      }
+    }
+  }
+}

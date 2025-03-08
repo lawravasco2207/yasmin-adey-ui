@@ -1,0 +1,166 @@
+// src/styles/public.scss
+.futuristic-bg {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(180deg, #1a0023, #0d0d3d);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.public-page {
+  padding-top: 225px; // Clears navbar (75px) + full profile (150px)
+
+  .neon-title {
+    color: #ff00cc;
+    text-align: center;
+    font-size: 2.5rem;
+    text-shadow: 0 0 10px #ff00cc, 0 0 20px #ff00cc;
+    margin-bottom: 20px;
+  }
+
+  .neon-line {
+    height: 2px;
+    background: linear-gradient(to right, #ff00cc, #00ffcc, #ff00cc);
+    width: 100%;
+    position: absolute;
+    left: 0;
+  }
+}
+
+.video-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  min-height: 700px; // Fixed height for video frame
+
+  .video-frame {
+    position: relative;
+    width: 400px;
+    height: 700px;
+    border-radius: 15px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 5px 15px rgba(0, 255, 204, 0.2);
+    cursor: grab;
+
+    .tiktok-media {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .slideshow {
+      width: 100%;
+      height: 100%;
+      position: relative;
+
+      .slideshow-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    }
+
+    .video-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 5px #ff00cc;
+
+      .caption {
+        font-size: 1.2rem;
+        margin: 0;
+
+        a {
+          color: #00ffcc;
+          text-decoration: none;
+          &:hover { text-decoration: underline; }
+        }
+      }
+
+      .brand-links {
+        margin-top: 10px;
+
+        p {
+          margin: 5px 0;
+          a {
+            color: #00ffcc;
+            text-decoration: none;
+            &:hover { text-decoration: underline; }
+          }
+        }
+      }
+    }
+  }
+
+  p {
+    color: #ffffff;
+    text-shadow: 0 0 5px #ff00cc;
+  }
+}
+
+.extra-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .public-links {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px; // Matches video width
+
+    h2 {
+      color: #ff00cc;
+      text-shadow: 0 0 10px #ff00cc;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .link-button {
+      background: rgba(255, 0, 204, 0.2);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-shadow: 0 0 5px #ff00cc;
+      border: 1px solid #ff00cc;
+      text-align: center;
+      transition: background 0.3s;
+      &:hover {
+        background: rgba(255, 0, 204, 0.4);
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .public-page {
+    padding-top: 180px; // Clears navbar (60px) + full profile (120px)
+  }
+
+  .video-container {
+    min-height: 500px;
+
+    .video-frame {
+      width: 300px;
+      height: 500px;
+
+      .caption { font-size: 1rem; }
+    }
+  }
+
+  .extra-content {
+    .public-links {
+      max-width: 300px;
+    }
+  }
+}

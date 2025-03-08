@@ -1,0 +1,161 @@
+// src/styles/dashboard.scss
+.futuristic-bg.dashboard {
+  min-height: 100vh;
+  padding: 120px 20px 20px; // Space for navbar
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  width: 100%; // Full width
+  margin: 0; // Remove centering
+}
+
+.add-todo, .tasks, .notifications, .calendar, .analytics, .quick-links {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 255, 204, 0.2);
+
+  h2 {
+    color: #ff00cc;
+    text-shadow: 0 0 10px #ff00cc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+    border: 1px solid #ff00cc;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+
+  button {
+    background: #ff00cc;
+    color: #ffffff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+}
+
+.tasks ul {
+  list-style: none;
+  padding: 0;
+
+  li {
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    color: #ffffff;
+
+    .high { color: #ff00cc; }
+    .medium { color: #00ffcc; }
+    .low { color: #ffffff; }
+  }
+}
+
+.message-list {
+  max-height: 400px;
+  overflow-y: auto;
+
+  .message {
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 10px;
+
+    &.unread { background: rgba(255, 0, 204, 0.2); }
+    &.read { background: rgba(255, 255, 255, 0.1); }
+    &.minimized {
+      padding: 10px;
+      h3 { margin: 0; }
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h3 { color: #ffffff; margin: 0; }
+      .minimize-btn {
+        background: none;
+        border: none;
+        color: #ff00cc;
+        cursor: pointer;
+        font-size: 1.2rem;
+      }
+    }
+
+    p { margin: 5px 0; color: #ffffff; }
+    .brand-image { max-width: 100%; border-radius: 5px; }
+  }
+}
+
+.calendar {
+  .react-calendar {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #ffffff;
+
+    .highlight {
+      background: rgb(20, 189, 223) !important;
+      color: #ffffff;
+      border-radius: 50%;
+    }
+
+    button {
+      color: #ffffff;
+      &:hover { background: rgba(255, 0, 204, 0.2); }
+    }
+  }
+}
+
+.analytics .recharts-wrapper {
+  width: 100% !important;
+}
+
+.quick-links {
+  text-align: center;
+
+  .link-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: rgba(255, 0, 204, 0.2);
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 10px;
+    text-shadow: 0 0 5px #ff00cc;
+  }
+}
+
+@media (max-width: 768px) {
+  .futuristic-bg.dashboard {
+    grid-template-columns: 1fr;
+    padding: 100px 10px 10px;
+  }
+
+  .add-todo, .notifications, .calendar, .analytics {
+    input, select, textarea, button {
+      font-size: 0.9rem;
+    }
+  }
+
+  .analytics .recharts-wrapper {
+    height: 250px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .futuristic-bg.dashboard {
+    padding: 100px 5px 5px;
+  }
+
+  h2 { font-size: 1.2rem; }
+}
