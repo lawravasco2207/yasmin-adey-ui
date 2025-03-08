@@ -1,8 +1,8 @@
 // src/services/api.ts
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000'; // Vite env, fallback to 10000
-console.log('API Base URL set to:', API_URL); // Debug URL
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'; // Local port 10000 with /api
+console.log('API Base URL set to:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -16,14 +16,14 @@ api.interceptors.request.use((config) => {
   if (sessionId) {
     config.headers['X-Session-ID'] = sessionId;
   }
-  console.log(`Request to ${config.url}:`, config.method, config.data || config.params); // Debug every request
+  console.log(`Request to ${config.url}:`, config.method, config.data || config.params);
   return config;
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error(`API Error on ${error.config.url}:`, error.response?.data || error.message); // Log errors
+    console.error(`API Error on ${error.config.url}:`, error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -69,10 +69,10 @@ export const submitChatReply = (message_id: number, reply: string) =>
   api.post('/chat/reply', { message_id, reply });
 
 // Login
-export const login = (username: string, password: string) => {
-  console.log('Logging in with:', { username, password });
-  return api.post('/auth/login', { username, password });
-};
+export const login = (formData: FormData) =>
+  api.post('/auth/login', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 
 // Links
 export const addLink = (name: string, url: string) => api.post('/links/add', { name, url });

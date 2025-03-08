@@ -1,10 +1,10 @@
 import express from 'express';
-import { login, checkSession } from '../controllers/authController';
+import { voiceLoginUpload, checkSession } from '../controllers/authController';
 
 const router = express.Router();
 
-// ✅ POST request for login
-router.post('/login', login);
+// ✅ POST request for voice login (uses multer middleware from authController)
+router.post('/login', voiceLoginUpload);
 
 // ✅ GET request to check session (important for auth checks)
 router.get('/session', checkSession);

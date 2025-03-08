@@ -13,8 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkSession = exports.login = void 0;
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const db_1 = __importDefault(require("../db"));
-const uuid_1 = require("uuid");
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -22,21 +22,24 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return;
     }
     try {
-        const result = yield db_1.default.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password]);
+        const result = yield db_1.default.query('SELECT * FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
         if (!user) {
             res.status(401).json({ success: false, message: 'Invalid credentials' });
             return;
         }
-        const sessionId = (0, uuid_1.v4)();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour session
-        yield db_1.default.query('INSERT INTO sessions (user_id, session_id, expires_at) VALUES ($1, $2, $3) RETURNING *', [user.id, sessionId, expiresAt]);
-        console.log(`User ${username} logged in, session ID: ${sessionId}`);
+        const match = yield bcrypt_1.default.compare(password, user.password);
+        if (!match) {
+            res.status(401).json({ success: false, message: 'Invalid credentials' });
+            return;
+        }
+        const sessionResult = yield db_1.default.query('INSERT INTO sessions (user_id) VALUES ($1) RETURNING session_id', [user.id]);
+        const sessionId = sessionResult.rows[0].session_id;
         res.json({ success: true, sessionId });
     }
     catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ success: false, message: 'Login failed' });
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 });
 exports.login = login;

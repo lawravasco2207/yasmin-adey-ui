@@ -3,18 +3,23 @@ import { Request, Response, RequestHandler } from 'express';
 import multer from 'multer';
 import pool from '../db';
 import * as crypto from 'crypto';
+import path from 'path';
 
+// Multer setup for image uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'src/uploads/'),
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, '../uploads'); // Adjusted for src/ structure
+    cb(null, uploadPath);
+  },
   filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
-// 32-byte key (256 bits) - 64 hex chars = 32 bytes
-const SERVER_KEY = Buffer.from('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex');
-// OR use a 32-char raw string: Buffer.from('my-super-secret-chat-key-32bytes!!') - 32 bytes in UTF-8
+// Encryption setup
+const SERVER_KEY = Buffer.from('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex'); // 32 bytes
 const IV_LENGTH = 16;
 
+// Submit a new chat message
 export const submitMessage: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   const { sender_name, sender_email, vision, website_url, message } = req.body;
   const imageFile = req.file;
@@ -36,7 +41,6 @@ export const submitMessage: RequestHandler = async (req: Request, res: Response)
 
   try {
     // Verify key length
-    console.log('SERVER_KEY length:', SERVER_KEY.length);
     if (SERVER_KEY.length !== 32) {
       throw new Error(`Invalid SERVER_KEY length: ${SERVER_KEY.length} bytes, expected 32`);
     }
@@ -67,12 +71,13 @@ export const submitMessage: RequestHandler = async (req: Request, res: Response)
   }
 };
 
+// Get all chat messages with decryption
 export const getMessages: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await pool.query('SELECT * FROM chat_messages ORDER BY created_at DESC');
     const decryptedMessages = result.rows.map((msg) => {
       try {
-        if (msg.message.includes(':')) {
+        if (msg.message && msg.message.includes(':')) {
           const [ivHex, encrypted] = msg.message.split(':');
           console.log('Decrypting message:', { ivHex, encrypted });
           const iv = Buffer.from(ivHex, 'hex');
@@ -87,25 +92,33 @@ export const getMessages: RequestHandler = async (req: Request, res: Response): 
         }
         console.log('Message not encrypted, returning as-is:', msg.message);
         return msg;
-      } catch (error) {
-        console.error('Decryption failed for message:', msg.id, error);
+      } catch (error: any) {
+        console.error('Decryption failed for message:', msg.id, error.message);
         return { ...msg, message: '[Encrypted - Decryption Failed]' };
       }
     });
-    console.log('Fetched and processed chat messages:', decryptedMessages);
+    console.log('Fetched and processed chat messages:', decryptedMessages.length);
     res.json({ success: true, data: decryptedMessages });
-  } catch (error) {
-    console.error('Get messages error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch messages' });
+  } catch (error: any) {
+    console.error('Get messages error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch messages', error: error.message });
   }
 };
 
+// Submit a reply to a chat message
 export const submitReply: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  const userId = (req as any).user.id;
+  const userId = (req as any).user?.id; // From checkSession middleware
   const { message_id, reply } = req.body;
 
   if (!message_id || !reply) {
+    console.log('Missing required fields:', { message_id, reply });
     res.status(400).json({ success: false, message: 'Message ID and reply are required' });
+    return;
+  }
+
+  if (!userId) {
+    console.log('No user ID from session');
+    res.status(401).json({ success: false, message: 'Unauthorized' });
     return;
   }
 
@@ -116,16 +129,25 @@ export const submitReply: RequestHandler = async (req: Request, res: Response): 
     encryptedReply += cipher.final('hex');
     const encryptedReplyMessage = `${iv.toString('hex')}:${encryptedReply}`;
 
+    // Update chat_messages with reply instead of separate table
     const result = await pool.query(
-      'INSERT INTO chat_replies (message_id, user_id, reply) VALUES ($1, $2, $3) RETURNING *',
-      [message_id, userId, encryptedReplyMessage]
+      'UPDATE chat_messages SET reply = $1, replied_at = NOW() WHERE id = $2 AND reply IS NULL RETURNING *',
+      [encryptedReplyMessage, message_id]
     );
+
+    if (result.rowCount === 0) {
+      console.log('No message found or already replied:', message_id);
+      res.status(400).json({ success: false, message: 'Message not found or already replied' });
+      return;
+    }
+
     console.log('Reply saved:', result.rows[0]);
     res.json({ success: true, message: 'Reply sent successfully', data: result.rows[0] });
-  } catch (error) {
-    console.error('Reply submission error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send reply' });
+  } catch (error: any) {
+    console.error('Reply submission error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to send reply', error: error.message });
   }
 };
 
+// Middleware for multer upload + submitMessage
 export const chatMessageUpload = [upload.single('image'), submitMessage];
