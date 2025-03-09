@@ -1,10 +1,10 @@
 // src/routes/dashboard.ts
 import express from 'express';
-import { getTodos, addTodo } from '../controllers/dashboardController';
+import dashboardController from '../controllers/dashboardController'; // Import default
 
 const router = express.Router();
 
-router.get('/todos', getTodos);
-router.post('/todos', addTodo);
+router.get('/todos', dashboardController.getTodos); // Array with checkSession
+router.post('/todos', dashboardController.addTodo); // Array with checkSession
 
 export default router;

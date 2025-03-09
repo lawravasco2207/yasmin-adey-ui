@@ -12,9 +12,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const sessionId = localStorage.getItem('sessionId');
-  if (sessionId) {
-    config.headers['X-Session-ID'] = sessionId;
+  const token = localStorage.getItem('token'); // Switch to 'token'
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`; // Use Authorization header
   }
   console.log(`Request to ${config.url}:`, config.method, config.data || config.params);
   return config;
@@ -61,12 +61,26 @@ export const deleteContent = (id: number) => api.delete(`/content/${id}`);
 export const getPublicContent = () => api.get('/content/public');
 
 // Dashboard
-export const getTodos = () => api.get('/dashboard/todos');
-export const addTodo = (title: string, priority: string, due_date: string) =>
-  api.post('/dashboard/todos', { title, priority, due_date });
-export const getChatMessages = () => api.get('/chat/messages');
-export const submitChatReply = (message_id: number, reply: string) =>
-  api.post('/chat/reply', { message_id, reply });
+export const getTodos = (headers?: { Authorization: string }) =>
+  api.get('/dashboard/todos', headers ? { headers } : undefined);
+
+export const addTodo = (
+  title: string,
+  priority: 'high' | 'medium' | 'low',
+  due_date: string,
+  headers?: { Authorization: string }
+) =>
+  api.post('/dashboard/todos', { title, priority, due_date }, headers ? { headers } : undefined);
+
+export const getChatMessages = (headers?: { Authorization: string }) =>
+  api.get('/chat/messages', headers ? { headers } : undefined);
+
+export const submitChatReply = (
+  message_id: number,
+  reply: string,
+  headers?: { Authorization: string }
+) =>
+  api.post('/chat/reply', { message_id, reply }, headers ? { headers } : undefined);
 
 // Login
 export const login = (data: { input: string }) => api.post('/auth/login', data);

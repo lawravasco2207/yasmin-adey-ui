@@ -1,12 +1,12 @@
 // src/pages/Dashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // Added AnimatePresence for exit animations
+import { motion, AnimatePresence } from 'framer-motion';
 import Calendar from 'react-calendar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import 'react-calendar/dist/Calendar.css';
 import { getTodos, addTodo, getChatMessages, submitChatReply } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEnvelope, FaCalendarAlt, FaChartLine, FaCog, FaMinus, FaPlus as FaExpand } from 'react-icons/fa'; // Added FaMinus, FaExpand
+import { FaPlus, FaEnvelope, FaCalendarAlt, FaChartLine, FaCog, FaMinus, FaPlus as FaExpand } from 'react-icons/fa';
 import '../styles/dashboard.scss';
 import { Value } from 'react-calendar/src/shared/types.js';
 
@@ -27,7 +27,7 @@ interface ChatMessage {
   message: string;
   is_read: boolean;
   created_at: string;
-  replied?: boolean; // Track if replied
+  replied?: boolean;
 }
 
 const mockAnalytics = [
@@ -42,18 +42,20 @@ const Dashboard: React.FC = () => {
   const [newTodo, setNewTodo] = useState({ title: '', priority: 'medium' as const, dueDate: '' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newReply, setNewReply] = useState('');
-  const [minimizedMessages, setMinimizedMessages] = useState<Set<number>>(new Set()); // Track minimized messages
+  const [minimizedMessages, setMinimizedMessages] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
 
   const fetchData = async () => {
-    const sessionId = localStorage.getItem('sessionId');
-    if (!sessionId) {
-      console.log('No session ID, redirecting to login');
+    const token = localStorage.getItem('token'); // Switch to 'token' from 'sessionId'
+    if (!token) {
+      console.log('No token, redirecting to login');
       navigate('/login', { replace: true });
       return;
     }
 
     try {
+      // Add Authorization header to all API calls
+
       const todosResponse = await getTodos();
       console.log('Fetched todos:', todosResponse.data.data);
       setTodos(todosResponse.data.data);
@@ -76,7 +78,7 @@ const Dashboard: React.FC = () => {
         status: error.response?.status,
       });
       if (error.response?.status === 401) {
-        localStorage.removeItem('sessionId');
+        localStorage.removeItem('token');
         navigate('/login', { replace: true });
       }
     }
@@ -135,7 +137,7 @@ const Dashboard: React.FC = () => {
       ));
       setNewReply('');
       setTimeout(() => {
-        setMessages(messages.filter(msg => msg.id !== messageId)); // Remove after 1s
+        setMessages(messages.filter(msg => msg.id !== messageId));
       }, 1000);
     } catch (error: any) {
       console.error('Failed to submit reply:', {
@@ -244,7 +246,7 @@ const Dashboard: React.FC = () => {
                 className={`message ${msg.is_read ? 'read' : 'unread'} ${minimizedMessages.has(msg.id) ? 'minimized' : ''}`}
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, transition: { duration: 0.5 } }} // Fade out on reply
+                exit={{ opacity: 0, height: 0, transition: { duration: 0.5 } }}
                 transition={{ duration: 0.5, type: 'spring' }}
               >
                 <div className="message-header">
