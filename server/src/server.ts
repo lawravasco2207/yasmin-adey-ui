@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+app.use(cors({ origin: process.env.FRONTEND_URL || 'https://yas-is-so-fab.onrender.com' }));
 app.use(express.json());
 app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
 
