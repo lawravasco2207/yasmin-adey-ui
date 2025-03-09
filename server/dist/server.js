@@ -30,7 +30,7 @@ const storage = multer_1.default.diskStorage({
 });
 const upload = (0, multer_1.default)({ storage });
 // Middleware
-app.use((0, cors_1.default)({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+app.use((0, cors_1.default)({ origin: process.env.FRONTEND_URL || 'https://yas-is-so-fab.onrender.com' }));
 app.use(express_1.default.json());
 app.use('/api/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // Routes
