@@ -19,22 +19,20 @@ const App: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const protectedRoutes = ['/dashboard', '/content']; // Keep your protected routes
-    const token = localStorage.getItem('token'); // Switch to 'token'
+    const protectedRoutes = ['/dashboard', '/content'];
+    const token = localStorage.getItem('token');
     const isLoginPage = location.pathname === '/login';
-
-    // Redirect if no token and on a protected route
+  
     if (protectedRoutes.includes(location.pathname) && !token && !isLoginPage) {
       console.log('No token, redirecting to login from:', location.pathname);
       navigate('/login', { replace: true });
       return;
     }
-
-    // Validate token for protected routes
+  
     if (token && protectedRoutes.includes(location.pathname) && !isLoginPage) {
-      api.get<void>('/auth/session', {
+      api.get('/auth/session', {
         headers: { Authorization: `Bearer ${token}` },
-      }).catch((error: { message: string }) => {
+      }).catch(error => {
         console.log('Session invalid, redirecting to login:', error.message);
         localStorage.removeItem('token');
         navigate('/login', { replace: true });

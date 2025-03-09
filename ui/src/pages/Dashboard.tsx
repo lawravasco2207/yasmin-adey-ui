@@ -46,24 +46,24 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const fetchData = async () => {
-    const token = localStorage.getItem('token'); // Switch to 'token' from 'sessionId'
+    const token = localStorage.getItem('token');
     if (!token) {
       console.log('No token, redirecting to login');
       navigate('/login', { replace: true });
       return;
     }
-
+  
     try {
-      // Add Authorization header to all API calls
-
-      const todosResponse = await getTodos();
+      const headers = { Authorization: `Bearer ${token}` };
+  
+      const todosResponse = await getTodos(headers); // Pass headers
       console.log('Fetched todos:', todosResponse.data.data);
       setTodos(todosResponse.data.data);
-
-      const messagesResponse = await getChatMessages();
+  
+      const messagesResponse = await getChatMessages(headers); // Pass headers
       console.log('Fetched messages:', messagesResponse.data.data);
       setMessages(messagesResponse.data.data.map((msg: ChatMessage) => ({ ...msg, replied: false })));
-
+  
       const unread = messagesResponse.data.data.filter((msg: ChatMessage) => !msg.is_read);
       if (unread.length > 0 && Notification.permission === 'granted') {
         new Notification(`You have ${unread.length} new message${unread.length > 1 ? 's' : ''}!`, {
@@ -270,7 +270,7 @@ const Dashboard: React.FC = () => {
                     {msg.website_url && (
                       <p><strong>Website:</strong> <a href={msg.website_url} target="_blank" rel="noopener noreferrer">{msg.website_url}</a></p>
                     )}
-                    {msg.image_path && <img src={`http://localhost:5000${msg.image_path}`} alt="Brand" className="brand-image" />}
+                    {msg.image_path && <img src={`http://localhost:10000${msg.image_path}`} alt="Brand" className="brand-image" />}
                     <p><strong>Message:</strong> {msg.message}</p>
                     {!msg.replied && (
                       <>

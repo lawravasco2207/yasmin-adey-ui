@@ -1,7 +1,7 @@
 // src/services/api.ts
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'; // Local port 10000 with /api
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api';
 console.log('API Base URL set to:', API_URL);
 
 const api = axios.create({
@@ -12,9 +12,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token'); // Switch to 'token'
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`; // Use Authorization header
+  const token = localStorage.getItem('token');
+  if (token && !config.headers['Authorization']) {
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   console.log(`Request to ${config.url}:`, config.method, config.data || config.params);
   return config;
@@ -24,6 +24,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error(`API Error on ${error.config.url}:`, error.response?.data || error.message);
+    if (error.response?.status === 404) {
+      console.error('The requested resource was not found.');
+    }
     return Promise.reject(error);
   }
 );
@@ -35,7 +38,8 @@ export const submitChatMessage = (
   vision: string,
   website_url: string,
   message: string,
-  image?: File
+  image?: File,
+  headers?: { Authorization: string }
 ) => {
   const formData = new FormData();
   formData.append('sender_name', sender_name);
@@ -45,20 +49,23 @@ export const submitChatMessage = (
   formData.append('message', message);
   if (image) formData.append('image', image);
   return api.post('/chat/submit', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': 'multipart/form-data', ...headers },
   });
 };
 
 // Content
-export const getContent = () => api.get('/content');
-export const uploadContent = (formData: FormData) => {
-  console.log('Uploading to /content/upload with:', Array.from(formData.entries()));
-  return api.post('/content/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+export const getContent = (headers?: { Authorization: string }) =>
+  api.get('/content', headers ? { headers } : undefined);
+
+export const uploadContent = (data: FormData, config: { headers: { Authorization: string } }) => {
+  api.post('/content/upload', data, config);
 };
-export const deleteContent = (id: number) => api.delete(`/content/${id}`);
-export const getPublicContent = () => api.get('/content/public');
+
+export const deleteContent = (id: number, headers?: { Authorization: string }) =>
+  api.delete(`/content/${id}`, headers ? { headers } : undefined);
+
+export const getPublicContent = (headers?: { Authorization: string }) =>
+  api.get('/content/public', headers ? { headers } : undefined);
 
 // Dashboard
 export const getTodos = (headers?: { Authorization: string }) =>
@@ -83,11 +90,17 @@ export const submitChatReply = (
   api.post('/chat/reply', { message_id, reply }, headers ? { headers } : undefined);
 
 // Login
-export const login = (data: { input: string }) => api.post('/auth/login', data);
+export const login = (data: { input: string }, headers?: { Authorization: string }) =>
+  api.post('/auth/login', data, headers ? { headers } : undefined);
 
 // Links
-export const addLink = (name: string, url: string) => api.post('/links/add', { name, url });
-export const getLinks = () => api.get('/links');
-export const deleteLink = (id: number) => api.delete(`/links/${id}`);
+export const addLink = (name: string, url: string, headers?: { Authorization: string }) =>
+  api.post('/links/add', { name, url }, headers ? { headers } : undefined);
+
+export const getLinks = (headers?: { Authorization: string }) =>
+  api.get('/links', headers ? { headers } : undefined);
+
+export const deleteLink = (id: number, headers?: { Authorization: string }) =>
+  api.delete(`/links/${id}`, headers ? { headers } : undefined);
 
 export default api;

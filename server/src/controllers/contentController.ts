@@ -1,86 +1,109 @@
-// src/controllers/contentController.ts
 import { Request, Response, RequestHandler } from 'express';
-import multer from 'multer';
-import pool from '../db';
+import pool from '../db'; // Adjust path
+import { checkSession } from './authController';
+import path from 'path';
+import fs from 'fs/promises';
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'src/uploads/'),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname}`),
-});
-const upload = multer({ storage });
-
-// src/controllers/contentController.ts (partial)
-// src/controllers/contentController.ts (partial)
-export const uploadContent: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  const files = req.files as Express.Multer.File[] | undefined;
-  const { caption, brand_links } = req.body; // brand_links as JSON string
-
-  console.log('Received upload:', { files: files?.map(f => f.filename), caption, brand_links });
-
-  if (!files || files.length === 0) {
-    res.status(400).json({ success: false, message: 'No files uploaded' });
-    return;
-  }
-
+export const contentUpload: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   try {
+    if (!req.files || !Array.isArray(req.files)) {
+      res.status(400).json({ success: false, message: 'No files uploaded' });
+      return;
+    }
+    const files = req.files as Express.Multer.File[];
+    const { caption, brand_links } = req.body;
     const filePaths = files.map(file => `/uploads/${file.filename}`);
-    const type = files.length > 1 ? 'slideshow' : files[0].mimetype.split('/')[0];
-    const parsedBrandLinks = brand_links ? JSON.parse(brand_links) : null; // Parse JSON string
+
     const result = await pool.query(
       'INSERT INTO content (title, type, status, file_path, caption, brand_links) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [files[0].originalname, type, 'published', JSON.stringify(filePaths), caption || null, parsedBrandLinks]
+      [
+        files[0].originalname, // Or some title logic
+        files.length > 1 ? 'slideshow' : files[0].mimetype.startsWith('video') ? 'video' : 'image',
+        'draft',
+        JSON.stringify(filePaths), // Always array
+        caption || null,
+        brand_links ? JSON.stringify(JSON.parse(brand_links)) : null,
+      ]
     );
-    console.log('Content uploaded:', result.rows[0]);
     res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ success: false, message: 'Failed to upload' });
+    return;
+  } catch (error: any) {
+    console.error('Content upload error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload content' });
+    return;
   }
 };
 
-// Ensure getContent and getPublicContent return brand_links (they already do with SELECT *)
-
-
-export const getContent: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+export const getContent: RequestHandler = async (req: Request, res: Response) => {
   try {
-    const result = await pool.query('SELECT * FROM content ORDER BY id DESC');
-    console.log('Fetched content:', result.rows);
-    res.json({ success: true, data: result.rows });
-  } catch (error) {
+    const result = await pool.query('SELECT * FROM content');
+    const content = result.rows.map(row => ({
+      ...row,
+      file_path: typeof row.file_path === 'string' && !row.file_path.startsWith('[')
+        ? JSON.stringify([row.file_path]) // Wrap string in array
+        : row.file_path, // Already JSON array
+    }));
+    res.json({ success: true, data: content });
+  } catch (error: any) {
     console.error('Get content error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch content' });
   }
 };
 
-export const getPublicContent: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+export const getPublicContent: RequestHandler = async (req: Request, res: Response) => {
   try {
-    const result = await pool.query("SELECT * FROM content WHERE status = 'published' ORDER BY id DESC");
-    console.log('Fetched public content:', result.rows);
-    res.json({ success: true, data: result.rows });
-  } catch (error) {
+    const result = await pool.query("SELECT * FROM content WHERE status = 'published'");
+    const content = result.rows.map(row => ({
+      ...row,
+      file_path: typeof row.file_path === 'string' && !row.file_path.startsWith('[')
+        ? JSON.stringify([row.file_path])
+        : row.file_path,
+    }));
+    res.json({ success: true, data: content });
+  } catch (error: any) {
     console.error('Get public content error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch public content' });
   }
 };
 
 export const deleteContent: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    res.status(400).json({ success: false, message: 'Invalid content ID' });
-    return;
-  }
   try {
+    const { id } = req.params;
     const result = await pool.query('DELETE FROM content WHERE id = $1 RETURNING *', [id]);
     if (result.rowCount === 0) {
-      res.status(404).json({ success: false, message: 'Content not found' });
-      return;
+      // return res.status(404).json({ success: false, message: 'Content not found' });
     }
-    console.log('Content deleted:', result.rows[0]);
-    res.json({ success: true, message: 'Content deleted' });
-  } catch (error) {
-    console.error('Delete content error:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete content' });
+
+    const filePaths = typeof result.rows[0].file_path === 'string' && result.rows[0].file_path.startsWith('[')
+      ? JSON.parse(result.rows[0].file_path)
+      : [result.rows[0].file_path];
+
+    await Promise.all(
+      filePaths.map(async (filePath: string) => {
+        const fileName = filePath.split('/uploads/')[1]; // Extract filename
+        const fullPath = path.join(__dirname, '../uploads', fileName); // Match server.ts
+        try {
+          await fs.access(fullPath); // Check if file exists
+          await fs.unlink(fullPath);
+          console.log(`Deleted file: ${fullPath}`);
+        } catch (fileError: any) {
+          console.warn(`Couldn’t delete file: ${fullPath} - ${fileError.message}`);
+          // Keep going—don’t crash
+        }
+      })
+    );
+
+    // return res.json({ success: true, message: 'Content deleted' });
+  } catch (error: any) {
+    console.error('Delete content error:', error.message, error.stack); // Better logging
+    // return res.status(500).json({ success: false, message: 'Failed to delete content' });
   }
 };
 
-export const contentUpload = [upload.array('files', 10), uploadContent]; // Up to 10 files for slideshows
+// Export with checkSession where needed
+export default {
+  contentUpload: [checkSession, contentUpload],
+  getContent: [checkSession, getContent],
+  getPublicContent,
+  deleteContent: [checkSession, deleteContent],
+};

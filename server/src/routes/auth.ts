@@ -7,7 +7,10 @@ const router = express.Router();
 router.post('/login', login);
 
 // GET request to check session
-router.get('/session', checkSession);
+router.get('/session', checkSession, (req: express.Request, res: express.Response) => {
+  console.log('Session check passed, user:', (req as any).user);
+  res.json({ success: true, user: (req as any).user });
+});
 
 // Debug route
 router.get('/', (req, res) => {
