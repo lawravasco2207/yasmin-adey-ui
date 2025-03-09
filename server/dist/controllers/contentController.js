@@ -12,44 +12,50 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contentUpload = exports.deleteContent = exports.getPublicContent = exports.getContent = exports.uploadContent = void 0;
-const multer_1 = __importDefault(require("multer"));
-const db_1 = __importDefault(require("../db"));
-const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => cb(null, 'src/uploads/'),
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}-${file.originalname}`),
-});
-const upload = (0, multer_1.default)({ storage });
-// src/controllers/contentController.ts (partial)
-// src/controllers/contentController.ts (partial)
-const uploadContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const files = req.files;
-    const { caption, brand_links } = req.body; // brand_links as JSON string
-    console.log('Received upload:', { files: files === null || files === void 0 ? void 0 : files.map(f => f.filename), caption, brand_links });
-    if (!files || files.length === 0) {
-        res.status(400).json({ success: false, message: 'No files uploaded' });
-        return;
-    }
+exports.deleteContent = exports.getPublicContent = exports.getContent = exports.contentUpload = void 0;
+const db_1 = __importDefault(require("../db")); // Adjust path
+const authController_1 = require("./authController");
+const path_1 = __importDefault(require("path"));
+const promises_1 = __importDefault(require("fs/promises"));
+const contentUpload = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const filePaths = files.map(file => `/uploads/${file.filename}`);
-        const type = files.length > 1 ? 'slideshow' : files[0].mimetype.split('/')[0];
-        const parsedBrandLinks = brand_links ? JSON.parse(brand_links) : null; // Parse JSON string
-        const result = yield db_1.default.query('INSERT INTO content (title, type, status, file_path, caption, brand_links) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [files[0].originalname, type, 'published', JSON.stringify(filePaths), caption || null, parsedBrandLinks]);
-        console.log('Content uploaded:', result.rows[0]);
-        res.json({ success: true, data: result.rows[0] });
+        console.log('Upload request files:', req.files);
+        if (!req.files || !Array.isArray(req.files)) {
+            res.status(400).json({ success: false, message: 'No files uploaded' });
+            return;
+        }
+        const files = req.files;
+        const { caption, brand_links, status } = req.body;
+        const filePaths = files.map(file => `${file.filename}`); // Just filename, no /uploads/
+        const validStatus = status === 'published' ? 'published' : 'draft';
+        const result = yield db_1.default.query('INSERT INTO content (title, type, status, file_path, caption, brand_links) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [
+            files[0].originalname,
+            files.length > 1 ? 'slideshow' : files[0].mimetype.startsWith('video') ? 'video' : 'image',
+            validStatus,
+            JSON.stringify(filePaths),
+            caption || null,
+            brand_links ? JSON.stringify(JSON.parse(brand_links)) : null,
+        ]);
+        res.status(201).json({ success: true, data: result.rows[0] });
     }
     catch (error) {
-        console.error('Upload error:', error);
-        res.status(500).json({ success: false, message: 'Failed to upload' });
+        if (error instanceof Error) {
+            console.error('Content upload error:', error.message, error.stack);
+        }
+        else {
+            console.error('Content upload error:', error);
+        }
+        res.status(500).json({ success: false, message: 'Failed to upload content' });
     }
 });
-exports.uploadContent = uploadContent;
-// Ensure getContent and getPublicContent return brand_links (they already do with SELECT *)
+exports.contentUpload = contentUpload;
 const getContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield db_1.default.query('SELECT * FROM content ORDER BY id DESC');
-        console.log('Fetched content:', result.rows);
-        res.json({ success: true, data: result.rows });
+        const result = yield db_1.default.query('SELECT * FROM content');
+        const content = result.rows.map(row => (Object.assign(Object.assign({}, row), { file_path: typeof row.file_path === 'string' && !row.file_path.startsWith('[')
+                ? JSON.stringify([row.file_path]) // Wrap string in array
+                : row.file_path })));
+        res.json({ success: true, data: content });
     }
     catch (error) {
         console.error('Get content error:', error);
@@ -59,9 +65,11 @@ const getContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.getContent = getContent;
 const getPublicContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield db_1.default.query("SELECT * FROM content WHERE status = 'published' ORDER BY id DESC");
-        console.log('Fetched public content:', result.rows);
-        res.json({ success: true, data: result.rows });
+        const result = yield db_1.default.query("SELECT * FROM content WHERE status = 'published'");
+        const content = result.rows.map(row => (Object.assign(Object.assign({}, row), { file_path: typeof row.file_path === 'string' && !row.file_path.startsWith('[')
+                ? JSON.stringify([row.file_path])
+                : row.file_path })));
+        res.json({ success: true, data: content });
     }
     catch (error) {
         console.error('Get public content error:', error);
@@ -70,25 +78,41 @@ const getPublicContent = (req, res) => __awaiter(void 0, void 0, void 0, functio
 });
 exports.getPublicContent = getPublicContent;
 const deleteContent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-        res.status(400).json({ success: false, message: 'Invalid content ID' });
-        return;
-    }
     try {
+        const { id } = req.params;
         const result = yield db_1.default.query('DELETE FROM content WHERE id = $1 RETURNING *', [id]);
         if (result.rowCount === 0) {
-            res.status(404).json({ success: false, message: 'Content not found' });
-            return;
+            // return res.status(404).json({ success: false, message: 'Content not found' });
         }
-        console.log('Content deleted:', result.rows[0]);
-        res.json({ success: true, message: 'Content deleted' });
+        const filePaths = typeof result.rows[0].file_path === 'string' && result.rows[0].file_path.startsWith('[')
+            ? JSON.parse(result.rows[0].file_path)
+            : [result.rows[0].file_path];
+        yield Promise.all(filePaths.map((filePath) => __awaiter(void 0, void 0, void 0, function* () {
+            const fileName = filePath.split('/uploads/')[1]; // Extract filename
+            const fullPath = path_1.default.join(__dirname, '../uploads', fileName); // Match server.ts
+            try {
+                yield promises_1.default.access(fullPath); // Check if file exists
+                yield promises_1.default.unlink(fullPath);
+                console.log(`Deleted file: ${fullPath}`);
+            }
+            catch (fileError) {
+                console.warn(`Couldn’t delete file: ${fullPath} - ${fileError.message}`);
+                // Keep going—don’t crash
+            }
+        })));
+        // return res.json({ success: true, message: 'Content deleted' });
     }
     catch (error) {
-        console.error('Delete content error:', error);
-        res.status(500).json({ success: false, message: 'Failed to delete content' });
+        console.error('Delete content error:', error.message, error.stack); // Better logging
+        // return res.status(500).json({ success: false, message: 'Failed to delete content' });
     }
 });
 exports.deleteContent = deleteContent;
-exports.contentUpload = [upload.array('files', 10), exports.uploadContent]; // Up to 10 files for slideshows
+// Export with checkSession where needed
+exports.default = {
+    contentUpload: [authController_1.checkSession, exports.contentUpload],
+    getContent: [authController_1.checkSession, exports.getContent],
+    getPublicContent: exports.getPublicContent,
+    deleteContent: [authController_1.checkSession, exports.deleteContent],
+};
 //# sourceMappingURL=contentController.js.map

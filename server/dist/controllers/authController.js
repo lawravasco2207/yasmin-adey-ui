@@ -13,58 +13,55 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkSession = exports.login = void 0;
-const bcrypt_1 = __importDefault(require("bcrypt"));
-const db_1 = __importDefault(require("../db"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        res.status(400).json({ success: false, message: 'Username and password required' });
+    const { input } = req.body;
+    console.log('Login attempt:', { input });
+    if (!input) {
+        console.log('No input provided');
+        res.status(400).json({ success: false, message: 'Input required' });
         return;
     }
-    try {
-        const result = yield db_1.default.query('SELECT * FROM users WHERE username = $1', [username]);
-        const user = result.rows[0];
-        if (!user) {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
-            return;
-        }
-        const match = yield bcrypt_1.default.compare(password, user.password);
-        if (!match) {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
-            return;
-        }
-        const sessionResult = yield db_1.default.query('INSERT INTO sessions (user_id) VALUES ($1) RETURNING session_id', [user.id]);
-        const sessionId = sessionResult.rows[0].session_id;
-        res.json({ success: true, sessionId });
+    if (input.toLowerCase() !== 'yas') {
+        console.log('Invalid input—not "yas"');
+        res.status(401).json({ success: false, message: 'Nope, try again!' });
+        return;
     }
-    catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+    console.log('Input matches "yas"—generating token');
+    const token = jsonwebtoken_1.default.sign({ user: 'yasmin' }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ success: true, token });
 });
 exports.login = login;
 const checkSession = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const sessionId = req.headers['x-session-id'];
-    if (!sessionId) {
-        console.log('No session ID provided');
+    const authHeader = req.headers['authorization'];
+    console.log('Checking session, auth header:', authHeader || 'None provided');
+    if (!authHeader) {
+        console.log('No authorization header');
+        res.status(401).json({ success: false, message: 'Please log in' });
+        return;
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        console.log('No token found');
         res.status(401).json({ success: false, message: 'Please log in' });
         return;
     }
     try {
-        const result = yield db_1.default.query('SELECT * FROM sessions WHERE session_id = $1 AND expires_at > NOW()', [sessionId]);
-        const session = result.rows[0];
-        if (!session) {
-            console.log('Invalid or expired session:', sessionId);
-            res.status(401).json({ success: false, message: 'Session invalid or expired' });
-            return;
-        }
-        console.log('Session verified for user:', session.user_id);
-        req.user = { id: session.user_id };
+        console.log('Verifying token');
+        const decoded = jsonwebtoken_1.default.verify(token, SECRET_KEY);
+        console.log('Token verified, user:', decoded.user);
+        req.user = { id: decoded.user };
         next();
     }
     catch (error) {
-        console.error('Session check error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error('Session check error:', {
+            message: error.message,
+            stack: error.stack,
+        });
+        res.status(401).json({ success: false, message: 'Session invalid or expired' });
     }
 });
 exports.checkSession = checkSession;

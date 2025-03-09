@@ -6,11 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const authController_1 = require("../controllers/authController");
 const router = express_1.default.Router();
-// ✅ POST request for login
+// POST request for "yas" login
 router.post('/login', authController_1.login);
-// ✅ GET request to check session (important for auth checks)
-router.get('/session', authController_1.checkSession);
-// ✅ Add a default route for debugging
+// GET request to check session
+router.get('/session', authController_1.checkSession, (req, res) => {
+    console.log('Session check passed, user:', req.user);
+    res.json({ success: true, user: req.user });
+});
+// Debug route
 router.get('/', (req, res) => {
     res.json({ message: 'Auth API is working!' });
 });

@@ -58,7 +58,12 @@ export const getContent = (headers?: { Authorization: string }) =>
   api.get('/content', headers ? { headers } : undefined);
 
 export const uploadContent = (data: FormData, config: { headers: { Authorization: string } }) => {
-  api.post('/content/upload', data, config);
+  return api.post('/content/upload', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data', // Required for FormData
+      ...config.headers, // Spread Authorization
+    },
+  });
 };
 
 export const deleteContent = (id: number, headers?: { Authorization: string }) =>

@@ -13,11 +13,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addTodo = exports.getTodos = void 0;
-const db_1 = __importDefault(require("../db"));
+const db_1 = __importDefault(require("../db")); // Adjust path
+const authController_1 = require("./authController"); // Import checkSession
 const getTodos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.user.id; // From authenticateToken
     try {
-        const result = yield db_1.default.query('SELECT * FROM todos WHERE user_id = $1 ORDER BY due_date', [userId]);
+        console.log('Fetching todos for user:', req.user);
+        // No user_id filter—single-user "yas" mode
+        const result = yield db_1.default.query('SELECT * FROM todos');
         res.json({ success: true, data: result.rows });
     }
     catch (error) {
@@ -27,15 +29,15 @@ const getTodos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.getTodos = getTodos;
 const addTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.user.id;
     const { title, priority, due_date } = req.body;
     if (!title || !priority || !due_date) {
-        res.status(400).json({ success: false, message: 'Title, priority, and due date are required' });
+        console.log('Missing todo fields:', { title, priority, due_date });
+        res.status(400).json({ success: false, message: 'Title, priority, and due date required' });
         return;
     }
     try {
-        const result = yield db_1.default.query('INSERT INTO todos (title, priority, due_date, user_id) VALUES ($1, $2, $3, $4) RETURNING *', [title, priority, due_date, userId]);
-        console.log('Todo added:', result.rows[0]);
+        console.log('Adding todo for user:', req.user);
+        const result = yield db_1.default.query('INSERT INTO todos (title, priority, due_date) VALUES ($1, $2, $3) RETURNING *', [title, priority, due_date]);
         res.json({ success: true, data: result.rows[0] });
     }
     catch (error) {
@@ -44,4 +46,9 @@ const addTodo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.addTodo = addTodo;
+// Export with checkSession middleware
+exports.default = {
+    getTodos: [authController_1.checkSession, exports.getTodos],
+    addTodo: [authController_1.checkSession, exports.addTodo],
+};
 //# sourceMappingURL=dashboardController.js.map

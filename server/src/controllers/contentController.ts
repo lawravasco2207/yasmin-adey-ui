@@ -6,31 +6,37 @@ import fs from 'fs/promises';
 
 export const contentUpload: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('Upload request files:', req.files);
     if (!req.files || !Array.isArray(req.files)) {
       res.status(400).json({ success: false, message: 'No files uploaded' });
       return;
     }
     const files = req.files as Express.Multer.File[];
-    const { caption, brand_links } = req.body;
-    const filePaths = files.map(file => `/uploads/${file.filename}`);
+    const { caption, brand_links, status } = req.body;
+    const filePaths = files.map(file => `${file.filename}`); // Just filename, no /uploads/
+
+    const validStatus = status === 'published' ? 'published' : 'draft';
 
     const result = await pool.query(
       'INSERT INTO content (title, type, status, file_path, caption, brand_links) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [
-        files[0].originalname, // Or some title logic
+        files[0].originalname,
         files.length > 1 ? 'slideshow' : files[0].mimetype.startsWith('video') ? 'video' : 'image',
-        'draft',
-        JSON.stringify(filePaths), // Always array
+        validStatus,
+        JSON.stringify(filePaths),
         caption || null,
         brand_links ? JSON.stringify(JSON.parse(brand_links)) : null,
       ]
     );
-    res.json({ success: true, data: result.rows[0] });
-    return;
-  } catch (error: any) {
-    console.error('Content upload error:', error);
+
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error('Content upload error:', error.message, error.stack);
+    } else {
+      console.error('Content upload error:', error);
+    }
     res.status(500).json({ success: false, message: 'Failed to upload content' });
-    return;
   }
 };
 

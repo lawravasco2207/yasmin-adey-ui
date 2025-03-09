@@ -1,150 +1,241 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { LazyLoadImage } from 'react-lazy-load-image-component';
-import 'react-lazy-load-image-component/src/effects/blur.css';
-import { getPublicContent, getLinks } from '../services/api';
-import '../styles/public.scss'; // Assuming a style file
-
-interface BrandLink {
-  name: string;
-  url: string;
-}
+import { motion, AnimatePresence } from 'framer-motion';
+import { FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { getPublicContent } from '../services/api'; // Adjust this import based on your API setup
+import '../styles/public.scss';
 
 interface Content {
   id: number;
   title: string;
   type: 'video' | 'image' | 'slideshow';
-  status: 'published';
+  status: 'draft' | 'published';
   file_path: string;
   caption: string | null;
-  brand_links: BrandLink[] | null;
-}
-
-interface Link {
-  id: number;
-  name: string;
-  url: string;
-  created_at: string;
+  brand_links: { name: string; url: string }[] | null;
 }
 
 const Public: React.FC = () => {
   const [contentList, setContentList] = useState<Content[]>([]);
-  const [links, setLinks] = useState<Link[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [direction, setDirection] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
 
+  const bio = {
+    name: "Yasmin",
+    tagline: "Vibes only, bro ✌️",
+    description: "Just a creator living that TikTok life—catch my vids!",
+  };
+
+  // Fetch public content on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchPublicContent = async () => {
       try {
-        const contentResponse = await getPublicContent();
-        console.log('Fetched public content:', contentResponse.data.data);
-        setContentList(contentResponse.data.data);
-
-        const linksResponse = await getLinks();
-        console.log('Fetched public links:', linksResponse.data.data);
-        setLinks(linksResponse.data.data);
+        const response = await getPublicContent();
+        setContentList(response.data.data.filter((item: Content) => item.status === 'published'));
       } catch (error: any) {
-        console.error('Failed to fetch public data:', error);
+        console.error('Failed to fetch public content:', error.message);
         setContentList([]);
-        setLinks([]);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData();
+    fetchPublicContent();
   }, []);
 
-  const renderCaption = (caption: string | null) => {
-    if (!caption) return null;
-    const parts = caption.split(/(\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))/);
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
-      } else if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={index}>{part.slice(1, -1)}</em>;
-      } else if (part.match(/\[.*?\]\(.*?\)/)) {
-        const [, text, url] = part.match(/\[(.+?)\]\((.+?)\)/) || [];
-        return <a key={index} href={url} target="_blank" rel="noopener noreferrer">{text}</a>;
+  // Handle navigation with wheel and keyboard
+  useEffect(() => {
+    const handleNavigation = (event: WheelEvent | KeyboardEvent) => {
+      if (selectedIndex === null || contentList.length === 0 || isScrolling) return;
+
+      setIsScrolling(true);
+      let newDirection = 0;
+      if (event instanceof WheelEvent) {
+        newDirection = event.deltaY > 0 ? 1 : -1;
+      } else if (event instanceof KeyboardEvent) {
+        if (event.key === 'ArrowDown') newDirection = 1;
+        if (event.key === 'ArrowUp') newDirection = -1;
       }
-      return <span key={index}>{part}</span>;
-    });
+
+      const newIndex = selectedIndex + newDirection;
+      if (newIndex >= 0 && newIndex < contentList.length) {
+        setDirection(newDirection);
+        setSelectedIndex(newIndex);
+      }
+
+      setTimeout(() => setIsScrolling(false), 300); // Debounce to prevent rapid updates
+    };
+
+    window.addEventListener('wheel', handleNavigation);
+    window.addEventListener('keydown', handleNavigation);
+    return () => {
+      window.removeEventListener('wheel', handleNavigation);
+      window.removeEventListener('keydown', handleNavigation);
+    };
+  }, [selectedIndex, contentList.length, isScrolling]);
+
+  // Handle arrow button clicks
+  const handleArrowClick = (move: 'up' | 'down') => {
+    if (selectedIndex === null || isScrolling) return;
+    setIsScrolling(true);
+
+    const newIndex = move === 'down' ? selectedIndex + 1 : selectedIndex - 1;
+    if (newIndex >= 0 && newIndex < contentList.length) {
+      setDirection(move === 'down' ? 1 : -1);
+      setSelectedIndex(newIndex);
+    }
+
+    setTimeout(() => setIsScrolling(false), 300);
   };
+
+  // Parse file paths safely
+  const parseFilePath = (filePathData: string | string[]) => {
+    let filePath: string[] = [];
+    try {
+      filePath = typeof filePathData === 'string' && filePathData.startsWith('[')
+        ? JSON.parse(filePathData)
+        : Array.isArray(filePathData)
+        ? filePathData
+        : [filePathData];
+    } catch (error) {
+      console.error('Failed to parse file_path:', error);
+      filePath = [];
+    }
+    return filePath[0]?.replace(/^\/uploads\//, '') || '';
+  };
+
+  if (loading) {
+    return (
+      <motion.div
+        className="public-page loading"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2>Loading the vibes, bro...</h2>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
-      className="public-page"
+      className="futuristic-bg public-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 1 }}
+      transition={{ duration: 1.2, type: 'spring', bounce: 0.4 }}
     >
-      <h1>Public Goodies</h1>
-      <section className="content-list">
-        <ul>
-          {contentList.map((item) => {
-            const filePath = typeof item.file_path === 'string' && item.file_path.startsWith('[')
-              ? JSON.parse(item.file_path) // Parse if JSON string
-              : [item.file_path]; // Wrap string in array
+      {/* Bio Section */}
+      <motion.header
+        className="bio-header"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+      >
+        <h1>{bio.name}</h1>
+        <p className="tagline">{bio.tagline}</p>
+        <p className="description">{bio.description}</p>
+      </motion.header>
 
-            return (
-              <motion.li
-                key={item.id}
+      {/* Video Grid */}
+      <section className="video-grid">
+        {contentList.length === 0 ? (
+          <p>No public vids yet, bro!</p>
+        ) : (
+          contentList.map((item, index) => (
+            <motion.div
+              key={item.id}
+              className="video-tile"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(255, 20, 147, 0.5)' }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setSelectedIndex(index)}
+            >
+              {item.type === 'video' && (
+                <video
+                  src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(item.file_path)}`}
+                  className="thumbnail"
+                  muted
+                  preload="metadata"
+                  poster={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(item.file_path)}#t=0.1`}
+                />
+              )}
+              <div className="tile-overlay">
+                {item.caption && <p className="caption">{item.caption}</p>}
+              </div>
+            </motion.div>
+          ))
+        )}
+      </section>
+
+      {/* Video Overlay */}
+      <AnimatePresence>
+        {selectedIndex !== null && contentList[selectedIndex] && (
+          <motion.div
+            className="video-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onClick={(e) => e.target === e.currentTarget && setSelectedIndex(null)}
+          >
+            <motion.div
+              className="video-player"
+              initial={{ y: direction > 0 ? '100vh' : '-100vh', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: direction > 0 ? '-100vh' : '100vh', opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              key={contentList[selectedIndex].id}
+            >
+              {contentList[selectedIndex].type === 'video' && (
+                <video
+                  src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(contentList[selectedIndex].file_path)}`}
+                  className="full-video"
+                  controls
+                  autoPlay
+                  preload="auto"
+                />
+              )}
+              <motion.div
+                className="video-details"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
               >
-                {item.type === 'image' && (
-                  <LazyLoadImage
-                    src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${filePath[0]}`}
-                    alt={item.title}
-                    effect="blur"
-                    className="thumbnail"
-                  />
+                {contentList[selectedIndex].caption && (
+                  <p className="caption">{contentList[selectedIndex].caption}</p>
                 )}
-                {item.type === 'video' && (
-                  <video
-                    src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${filePath[0]}`}
-                    className="thumbnail"
-                    controls
-                    preload="metadata"
-                  />
-                )}
-                {item.type === 'slideshow' && (
-                  <div className="thumbnail-slideshow">
-                    {filePath.map((path: string, index: number) => (
-                      <LazyLoadImage
-                        key={index}
-                        src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${path}`}
-                        alt={`${item.title} slide ${index + 1}`}
-                        effect="blur"
-                        className="thumbnail-slide"
-                      />
-                    ))}
-                  </div>
-                )}
-                <div className="content-details">
-                  <span className="title">{item.title}</span> - {item.type}
-                  {item.caption && <p className="caption">{renderCaption(item.caption)}</p>}
-                  {item.brand_links && item.brand_links.length > 0 && (
-                    <div className="brand-links">
-                      {item.brand_links.map((link, index) => (
-                        <p key={index}>
-                          <a href={link.url} target="_blank" rel="noopener noreferrer">{link.name}</a>
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.li>
-            );
-          })}
-        </ul>
-      </section>
-      <section className="links-list">
-        <h2>Public Links</h2>
-        <ul>
-          {links.map((link) => (
-            <li key={link.id}>
-              <a href={link.url} target="_blank" rel="noopener noreferrer">{link.name}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
+                {contentList[selectedIndex].brand_links?.map((link, index) => (
+                  <p key={index}>
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      {link.name}
+                    </a>
+                  </p>
+                ))}
+              </motion.div>
+              <motion.button
+                className="arrow-btn arrow-up"
+                onClick={() => handleArrowClick('up')}
+                disabled={selectedIndex === 0}
+                whileHover={{ scale: 1.1 }}
+              >
+                <FaArrowUp />
+              </motion.button>
+              <motion.button
+                className="arrow-btn arrow-down"
+                onClick={() => handleArrowClick('down')}
+                disabled={selectedIndex === contentList.length - 1}
+                whileHover={{ scale: 1.1 }}
+              >
+                <FaArrowDown />
+              </motion.button>
+              <button className="close-btn" onClick={() => setSelectedIndex(null)}>
+                ✕
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

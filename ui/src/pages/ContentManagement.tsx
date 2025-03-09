@@ -93,36 +93,45 @@ const ContentManagement: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No token found');
-
+  
       console.log('Starting upload for files:', selectedFiles.map(f => ({ name: f.name, type: f.type, size: f.size })));
       const formData = new FormData();
-      selectedFiles.forEach(file => formData.append('files', file));
+      selectedFiles.forEach(file => formData.append('files', file)); // Must match 'files'
       formData.append('caption', caption);
-      formData.append('status', status); // Add status to FormData
+      formData.append('status', status);
       const validBrandLinks = brandLinks.filter(link => link.name && link.url);
       if (validBrandLinks.length > 0) {
         formData.append('brand_links', JSON.stringify(validBrandLinks));
       }
-      const response: any = await uploadContent(formData, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('Upload successful, response:', response.data);
+  
+      // Log FormData contents
+      for (const pair of formData.entries()) {
+        console.log(`FormData entry: ${pair[0]} =`, pair[1]);
+      }
+  
+      await uploadContent(formData, { headers: { Authorization: `Bearer ${token}` } });
+      console.log('Upload successful');
       const refreshedResponse = await getContent({ Authorization: `Bearer ${token}` });
       console.log('Refreshed content after upload:', refreshedResponse.data.data);
       setContentList(refreshedResponse.data.data);
       setSelectedFiles([]);
       setFilePreview(null);
       setCaption('');
-      setStatus('draft'); // Reset to draft
+      setStatus('published');
       setBrandLinks([{ name: '', url: '' }]);
       const input = document.getElementById('file-input') as HTMLInputElement;
       if (input) input.value = '';
     } catch (error: any) {
       console.error('Upload failed:', {
         message: error.message,
-        response: error.response?.data,
+        response: error.response?.data || 'No response data',
+        status: error.response?.status,
       });
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         navigate('/login', { replace: true });
+      } else if (error.response?.status === 400) {
+        alert('Upload failed: Bad request—check files, bro!');
       } else {
         alert('Upload failed, bro! Try again.');
       }
@@ -262,51 +271,87 @@ const ContentManagement: React.FC = () => {
       </motion.section>
 
       <motion.section className="content-list" initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6, duration: 0.6, type: 'spring' }}>
-        <h2>Your Glittering Collection</h2>
-        <ul>
-          {contentList.map((item) => {
-            const filePath = typeof item.file_path === 'string' && item.file_path.startsWith('[') ? JSON.parse(item.file_path) : [item.file_path];
-            return (
-              <motion.li key={item.id} initial={{ opacity: 0, y: 50, rotateZ: -10 }} whileInView={{ opacity: 1, y: 0, rotateZ: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, type: 'spring' }}>
-                {item.type === 'image' && (
-                  <LazyLoadImage src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${filePath[0]}`} alt={item.title} effect="blur" className="thumbnail" />
-                )}
-                {item.type === 'video' && (
-                  <video src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${filePath[0]}`} className="thumbnail" preload="metadata" controls />
-                )}
-                {item.type === 'slideshow' && (
-                  <div className="thumbnail-slideshow">
-                    {filePath.map((path: string, index: number) => (
-                      <LazyLoadImage key={index} src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${path}`} alt={`${item.title} slide ${index + 1}`} effect="blur" className="thumbnail-slide" />
-                    ))}
-                  </div>
-                )}
-                <div className="content-details">
-                  <span className="title">{item.title}</span> - {item.type} - <span className={item.status}>{item.status}</span>
-                  {item.caption && <p className="caption">{renderCaption(item.caption)}</p>}
-                  {item.brand_links && item.brand_links.length > 0 && (
-                    <div className="brand-links">
-                      {item.brand_links.map((link, index) => (
-                        <p key={index}>
-                          <a href={link.url} target="_blank" rel="noopener noreferrer">{link.name}</a>
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {item.file_path && (
-                    <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads${filePath[0]}`} target="_blank" rel="noopener noreferrer">
-                      Peek
-                    </a>
-                  )}
-                </div>
-                <motion.button className="delete-btn" onClick={() => handleDeleteContent(item.id)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.4 }} whileHover={{ scale: 1.1, rotateX: 10 }}>
-                  <FaTrash />
-                </motion.button>
-              </motion.li>
-            );
-          })}
-        </ul>
-      </motion.section>
+  <h2>Your Glittering Collection</h2>
+  <ul>
+    {contentList.map((item) => {
+      let filePath: string[] = [];
+      try {
+        filePath = typeof item.file_path === 'string' && item.file_path.startsWith('[')
+          ? JSON.parse(item.file_path)
+          : Array.isArray(item.file_path)
+          ? item.file_path
+          : [item.file_path];
+      } catch (error) {
+        console.error(`Failed to parse file_path for item ${item.id}:`, item.file_path, error);
+        filePath = []; // Fallback
+      }
+      const cleanFilePath = filePath[0] && typeof filePath[0] === 'string'
+        ? filePath[0].replace(/^\/uploads\//, '')
+        : ''; // Empty if invalid
+      return (
+        <motion.li key={item.id} initial={{ opacity: 0, y: 50, rotateZ: -10 }} whileInView={{ opacity: 1, y: 0, rotateZ: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, type: 'spring' }}>
+          {item.type === 'image' && cleanFilePath && (
+            <LazyLoadImage
+              src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+              alt={item.title}
+              effect="blur"
+              className="thumbnail"
+            />
+          )}
+          {item.type === 'video' && cleanFilePath && (
+            <video
+              src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+              className="thumbnail"
+              preload="metadata"
+              controls
+            />
+          )}
+          {item.type === 'slideshow' && filePath.length > 0 && (
+            <div className="thumbnail-slideshow">
+              {filePath.map((path: string, index: number) => {
+                const cleanPath = typeof path === 'string' ? path.replace(/^\/uploads\//, '') : '';
+                return cleanPath ? (
+                  <LazyLoadImage
+                    key={index}
+                    src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanPath}`}
+                    alt={`${item.title} slide ${index + 1}`}
+                    effect="blur"
+                    className="thumbnail-slide"
+                  />
+                ) : null;
+              })}
+            </div>
+          )}
+          <div className="content-details">
+            <span className="title">{item.title}</span> - {item.type} - <span className={item.status}>{item.status}</span>
+            {item.caption && <p className="caption">{renderCaption(item.caption)}</p>}
+            {item.brand_links && item.brand_links.length > 0 && (
+              <div className="brand-links">
+                {item.brand_links.map((link, index) => (
+                  <p key={index}>
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">{link.name}</a>
+                  </p>
+                ))}
+              </div>
+            )}
+            {cleanFilePath && (
+              <a
+                href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Peek
+              </a>
+            )}
+          </div>
+          <motion.button className="delete-btn" onClick={() => handleDeleteContent(item.id)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.4 }} whileHover={{ scale: 1.1, rotateX: 10 }}>
+            <FaTrash />
+          </motion.button>
+        </motion.li>
+      );
+    })}
+  </ul>
+</motion.section>
     </motion.div>
   );
 };
