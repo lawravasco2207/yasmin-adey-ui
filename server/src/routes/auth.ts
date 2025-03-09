@@ -1,15 +1,15 @@
 import express from 'express';
-import { voiceLoginUpload, checkSession } from '../controllers/authController';
+import { login, checkSession } from '../controllers/authController';
 
 const router = express.Router();
 
-// ✅ POST request for voice login (uses multer middleware from authController)
-router.post('/login', voiceLoginUpload);
+// POST request for "yas" login
+router.post('/login', login);
 
-// ✅ GET request to check session (important for auth checks)
+// GET request to check session
 router.get('/session', checkSession);
 
-// ✅ Add a default route for debugging
+// Debug route
 router.get('/', (req, res) => {
   res.json({ message: 'Auth API is working!' });
 });

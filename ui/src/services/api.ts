@@ -69,10 +69,7 @@ export const submitChatReply = (message_id: number, reply: string) =>
   api.post('/chat/reply', { message_id, reply });
 
 // Login
-export const login = (formData: FormData) =>
-  api.post('/auth/login', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+export const login = (data: { input: string }) => api.post('/auth/login', data);
 
 // Links
 export const addLink = (name: string, url: string) => api.post('/links/add', { name, url });

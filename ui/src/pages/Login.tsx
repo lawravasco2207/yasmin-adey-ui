@@ -1,65 +1,57 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { login } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const [input, setInput] = useState('');
+  const navigate = useNavigate();
 
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorderRef.current = new MediaRecorder(stream);
-    audioChunksRef.current = [];
-
-    mediaRecorderRef.current.ondataavailable = (e) => audioChunksRef.current.push(e.data);
-    mediaRecorderRef.current.onstop = () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-      handleSubmit(audioBlob);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const newInput = input + e.key.toLowerCase();
+      if (newInput.length > 3) {
+        setInput(newInput.slice(-3)); // Keep last 3 chars
+      } else {
+        setInput(newInput);
+      }
     };
 
-    mediaRecorderRef.current.start();
-    setIsRecording(true);
-    console.log('Recording started');
-  };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [input]);
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    console.log('Recording stopped');
-  };
+  useEffect(() => {
+    if (input === 'yas') {
+      handleLogin();
+    }
+  }, [input]);
 
-  const handleSubmit = async (audioBlob: Blob) => {
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('voice', audioBlob, 'voice.wav');
-
+  const handleLogin = async () => {
     try {
-      const response = await login(formData);
+      const response = await login({ input });
       localStorage.setItem('token', response.data.token);
-      alert('Voice login successful, bro!');
+      console.log('Logged in with "yas"');
+      navigate('/dashboard'); // Or wherever
     } catch (error) {
-      console.error('Voice login failed:', error);
-      alert('Login failed—check console!');
+      console.error('Login failed:', error);
+      setInput(''); // Reset on fail
     }
   };
 
   return (
-    <div>
-      <h2>Voice Login</h2>
-      <input
-        type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Username"
-      />
-      <button onClick={startRecording} disabled={isRecording}>
-        Start Recording
-      </button>
-      <button onClick={stopRecording} disabled={!isRecording}>
-        Stop & Login
-      </button>
-      {isRecording && <p>Recording... Say "it’s me!"</p>}
+    <div
+      style={{
+        height: '100vh',
+        background: '#000',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        cursor: 'none',
+      }}
+    >
+      {input.length > 0 && input !== 'yas' ? 'Keep typing...' : 'Type anywhere'}
     </div>
   );
 };
