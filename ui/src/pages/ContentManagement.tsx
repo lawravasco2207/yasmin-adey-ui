@@ -292,7 +292,7 @@ const ContentManagement: React.FC = () => {
         <motion.li key={item.id} initial={{ opacity: 0, y: 50, rotateZ: -10 }} whileInView={{ opacity: 1, y: 0, rotateZ: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, type: 'spring' }}>
           {item.type === 'image' && cleanFilePath && (
             <LazyLoadImage
-              src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+              src={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${cleanFilePath}`}
               alt={item.title}
               effect="blur"
               className="thumbnail"
@@ -300,7 +300,7 @@ const ContentManagement: React.FC = () => {
           )}
           {item.type === 'video' && cleanFilePath && (
             <video
-              src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+              src={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${cleanFilePath}`}
               className="thumbnail"
               preload="metadata"
               controls
@@ -313,7 +313,7 @@ const ContentManagement: React.FC = () => {
                 return cleanPath ? (
                   <LazyLoadImage
                     key={index}
-                    src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanPath}`}
+                    src={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${cleanPath}`}
                     alt={`${item.title} slide ${index + 1}`}
                     effect="blur"
                     className="thumbnail-slide"
@@ -336,7 +336,7 @@ const ContentManagement: React.FC = () => {
             )}
             {cleanFilePath && (
               <a
-                href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${cleanFilePath}`}
+                href={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${cleanFilePath}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

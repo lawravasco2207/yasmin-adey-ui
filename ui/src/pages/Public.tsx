@@ -153,11 +153,11 @@ const Public: React.FC = () => {
             >
               {item.type === 'video' && (
                 <video
-                  src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(item.file_path)}`}
+                  src={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${parseFilePath(item.file_path)}`}
                   className="thumbnail"
                   muted
                   preload="metadata"
-                  poster={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(item.file_path)}#t=0.1`}
+                  poster={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${parseFilePath(item.file_path)}#t=0.1`}
                 />
               )}
               <div className="tile-overlay">
@@ -189,7 +189,7 @@ const Public: React.FC = () => {
             >
               {contentList[selectedIndex].type === 'video' && (
                 <video
-                  src={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000/api'}/uploads/${parseFilePath(contentList[selectedIndex].file_path)}`}
+                  src={`${import.meta.env.VITE_BACKEND_URL || 'https://yas-is-so-fab-1.onrender.com/api'}/uploads/${parseFilePath(contentList[selectedIndex].file_path)}`}
                   className="full-video"
                   controls
                   autoPlay

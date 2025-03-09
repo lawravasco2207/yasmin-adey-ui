@@ -270,7 +270,7 @@ const Dashboard: React.FC = () => {
                     {msg.website_url && (
                       <p><strong>Website:</strong> <a href={msg.website_url} target="_blank" rel="noopener noreferrer">{msg.website_url}</a></p>
                     )}
-                    {msg.image_path && <img src={`http://localhost:10000${msg.image_path}`} alt="Brand" className="brand-image" />}
+                    {msg.image_path && <img src={`https://yas-is-so-fab-1.onrender.com${msg.image_path}`} alt="Brand" className="brand-image" />}
                     <p><strong>Message:</strong> {msg.message}</p>
                     {!msg.replied && (
                       <>
